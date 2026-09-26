@@ -1,0 +1,6 @@
+{
+  "name": "MineSafe",
+  "description": "Sistema de monitoreo de gases, temperatura y variables ambientales para entornos mineros con Firebase en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
