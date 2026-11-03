@@ -1,0 +1,8 @@
+[
+  "tests/test_analyzer.py::test_analyzer_returns_window_and_trends",
+  "tests/test_analyzer.py::test_api_analyze_with_key",
+  "tests/test_analyzer.py::test_api_health",
+  "tests/test_analyzer.py::test_api_requires_key",
+  "tests/test_analyzer.py::test_root_redirects_to_docs",
+  "tests/test_analyzer.py::test_timestamps_must_include_timezone"
+]

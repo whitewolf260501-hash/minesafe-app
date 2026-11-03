@@ -42,7 +42,8 @@ import com.example.ui.theme.StatusWarningAmber
 fun AlertActiveCard(
     alert: SafetyAlert,
     modifier: Modifier = Modifier,
-    testTag: String = ""
+    testTag: String = "",
+    onDescribeAlert: (() -> Unit)? = null
 ) {
     val isDanger = alert.severity == AlertSeverity.DANGER
     val mainColor = if (isDanger) StatusDangerRed else StatusWarningAmber
@@ -119,6 +120,34 @@ fun AlertActiveCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
+
+            if (onDescribeAlert != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                androidx.compose.material3.Button(
+                    onClick = onDescribeAlert,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("btn_describe_alert_${alert.id}"),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = mainColor,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "📝 Describir lo sucedido para esta alerta",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

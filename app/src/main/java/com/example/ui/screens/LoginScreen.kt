@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -28,6 +31,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +45,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +68,8 @@ import com.example.ui.theme.BorderAccentGreen
 import com.example.ui.theme.BorderAccentOrange
 import com.example.ui.theme.PrimaryTealDark
 import com.example.ui.theme.PrimaryTealDarkVariant
+import com.example.ui.theme.StatusDangerRed
+import com.example.ui.theme.StatusSafeGreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,8 +78,17 @@ fun LoginScreen(
     onSuccess: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+
+    val savedEmail by viewModel.savedEmail.collectAsState()
+    val savedPassword by viewModel.savedPassword.collectAsState()
+    val rememberDevicePref by viewModel.rememberDevice.collectAsState()
+    val autoLoginPref by viewModel.autoLogin.collectAsState()
+
+    var email by remember(savedEmail) { mutableStateOf(savedEmail) }
+    var password by remember(savedPassword) { mutableStateOf(savedPassword) }
+    var rememberMe by remember(rememberDevicePref) { mutableStateOf(rememberDevicePref) }
+    var autoLogin by remember(autoLoginPref) { mutableStateOf(autoLoginPref) }
+
     var passwordVisible by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
     var forgotEmail by remember { mutableStateOf("") }
@@ -152,7 +169,71 @@ fun LoginScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Remembered Device Indicator Banner
+                    if (savedEmail.isNotBlank() && rememberDevicePref) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .testTag("banner_device_remembered"),
+                            colors = CardDefaults.cardColors(containerColor = PrimaryTealDark.copy(alpha = 0.08f)),
+                            border = BorderStroke(1.dp, PrimaryTealDark.copy(alpha = 0.35f)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PhoneAndroid,
+                                        contentDescription = "Dispositivo Recordado",
+                                        tint = PrimaryTealDark,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = "Dispositivo de Confianza",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryTealDark
+                                        )
+                                        Text(
+                                            text = "Credenciales recordadas para $savedEmail",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                TextButton(
+                                    onClick = {
+                                        viewModel.forgetSavedDevice()
+                                        email = ""
+                                        password = ""
+                                        rememberMe = false
+                                        autoLogin = false
+                                    }
+                                ) {
+                                    Text(
+                                        text = "Olvidar",
+                                        fontSize = 11.sp,
+                                        color = StatusDangerRed,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     // Email Field
                     OutlinedTextField(
@@ -217,16 +298,89 @@ fun LoginScreen(
                             }
                         }
                     } else {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
+
+                    // CHECKBOX: Recordar dispositivo y credenciales
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { rememberMe = !rememberMe }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { rememberMe = it },
+                            colors = CheckboxDefaults.colors(checkedColor = PrimaryTealDark),
+                            modifier = Modifier.testTag("checkbox_remember_device")
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column {
+                            Text(
+                                text = "Recordar este dispositivo",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Guarda tus credenciales para no tener que escribirlas de nuevo",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // CHECKBOX: Inicio de sesión automático
+                    if (rememberMe) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { autoLogin = !autoLogin }
+                                .padding(start = 12.dp, top = 2.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = autoLogin,
+                                onCheckedChange = { autoLogin = it },
+                                colors = CheckboxDefaults.colors(checkedColor = PrimaryTealDark),
+                                modifier = Modifier.testTag("checkbox_auto_login")
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Iniciar sesión automáticamente al abrir la app",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Action Button (Login or Register)
                     Button(
                         onClick = {
                             if (selectedTab == 0) {
-                                viewModel.login(email, password, onSuccess)
+                                viewModel.login(
+                                    email = email,
+                                    pass = password,
+                                    remember = rememberMe,
+                                    autoLog = autoLogin,
+                                    onSuccess = onSuccess
+                                )
                             } else {
-                                viewModel.register(email, password, onSuccess)
+                                viewModel.register(
+                                    email = email,
+                                    pass = password,
+                                    remember = rememberMe,
+                                    autoLog = autoLogin,
+                                    onSuccess = onSuccess
+                                )
                             }
                         },
                         modifier = Modifier
@@ -251,60 +405,32 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Fast Demo Access Section
-            Text(
-                text = "ACCESO RÁPIDO PARA REVISIÓN / PRUEBAS",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.5.sp
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
+            // Security & Role Notice
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                )
             ) {
-                OutlinedButton(
-                    onClick = {
-                        viewModel.enterAsRole("superAdmin")
-                        onSuccess()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .testTag("quick_superadmin"),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BorderAccentBlue)
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("SuperAdmin", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        viewModel.enterAsRole("admin")
-                        onSuccess()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .testTag("quick_admin"),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BorderAccentOrange)
-                ) {
-                    Text("Admin Mina", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        viewModel.enterAsRole("usuario")
-                        onSuccess()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .testTag("quick_operator"),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BorderAccentGreen)
-                ) {
-                    Text("Operador", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Autenticación Segura",
+                        tint = PrimaryTealDark,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "El acceso y nivel de permisos (SuperAdmin, Admin o Operador) se asignan estrictamente según las credenciales del usuario autenticado en Firebase.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
                 }
             }
 

@@ -2,6 +2,7 @@ package com.example.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
@@ -56,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.navigation.ScreenDestination
 import com.example.ui.screens.AdminUsersScreen
+import com.example.ui.screens.AlertConfigScreen
 import com.example.ui.screens.AlertsScreen
 import com.example.ui.screens.ChartsScreen
 import com.example.ui.screens.DashboardScreen
@@ -79,6 +82,10 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MineSafeApp(viewModel: MainViewModel) {
+    val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+    val isDeviceConnected by viewModel.isDeviceConnected.collectAsState()
+    val isGatewayConnected by viewModel.isGatewayConnected.collectAsState()
+    val deviceLastSeenText by viewModel.deviceLastSeenText.collectAsState()
     val currentScreen by viewModel.currentScreen.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
@@ -96,6 +103,17 @@ fun MineSafeApp(viewModel: MainViewModel) {
         }
     }
 
+    // Gate unauthenticated users with Login Screen
+    if (!isLoggedIn) {
+        LoginScreen(
+            viewModel = viewModel,
+            onSuccess = {
+                viewModel.navigateTo(ScreenDestination.DASHBOARD)
+            }
+        )
+        return
+    }
+
     // Handle back button on sub-screens
     BackHandler(enabled = currentScreen != ScreenDestination.DASHBOARD) {
         viewModel.navigateTo(ScreenDestination.DASHBOARD)
@@ -106,6 +124,7 @@ fun MineSafeApp(viewModel: MainViewModel) {
         ScreenDestination.DASHBOARD,
         ScreenDestination.DEVICES,
         ScreenDestination.ALERTS,
+        ScreenDestination.ALERT_CONFIG,
         ScreenDestination.CHARTS
     )
 
@@ -209,6 +228,7 @@ fun MineSafeApp(viewModel: MainViewModel) {
                     ScreenDestination.DASHBOARD,
                     ScreenDestination.DEVICES,
                     ScreenDestination.ALERTS,
+                    ScreenDestination.ALERT_CONFIG,
                     ScreenDestination.CHARTS,
                     ScreenDestination.MAP,
                     ScreenDestination.HISTORY,
@@ -321,55 +341,47 @@ fun MineSafeApp(viewModel: MainViewModel) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Fast Role Switcher in Drawer for testing
-                Column(
+                // Active Session Info Card in Drawer
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                 ) {
-                    Text(
-                        text = "CAMBIAR ROL PARA PROBAR:",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 9.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = { viewModel.enterAsRole("usuario") },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text("Usuario", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = { viewModel.enterAsRole("admin") },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text("Admin", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = { viewModel.enterAsRole("superAdmin") },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(4.dp),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text("Super", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "ROL ASIGNADO",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp,
+                            color = PrimaryTealDark,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = userProfile.rolDisplay,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
                 Divider()
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.Logout, contentDescription = "Cerrar Sesión", tint = StatusDangerRed) },
+                    label = { Text("Cerrar Sesión", color = StatusDangerRed, fontWeight = FontWeight.Bold) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        viewModel.logout()
+                    },
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .testTag("drawer_btn_logout")
+                )
                 Text(
-                    text = "Backend: minefase-fc5f5\nSensor: dispositivo1 (ESP32)",
+                    text = "Backend: minefase-fc5f5\nSensor: dispositivo1 (${if (isDeviceConnected) "ESP32 Conectado" else "ESP32 Offline"})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
@@ -411,6 +423,64 @@ fun MineSafeApp(viewModel: MainViewModel) {
                         }
                     },
                     actions = {
+                        // IoT Device Status Pill (click to test toggle simulation)
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isDeviceConnected) StatusSafeGreen.copy(alpha = 0.25f) else StatusDangerRed.copy(alpha = 0.35f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { viewModel.toggleDeviceSimulation() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .background(if (isDeviceConnected) StatusSafeGreen else StatusDangerRed, CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isDeviceConnected) "ESP32 ON" else "ESP32 OFF",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Gateway Device Status Pill (click to test toggle simulation)
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    if (isGatewayConnected) StatusSafeGreen.copy(alpha = 0.25f) else StatusDangerRed.copy(alpha = 0.35f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { viewModel.toggleGatewaySimulation() }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .background(if (isGatewayConnected) StatusSafeGreen else StatusDangerRed, CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isGatewayConnected) "GW ON" else "GW OFF",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
                         // Firebase connection pill
                         Box(
                             modifier = Modifier
@@ -519,6 +589,10 @@ fun MineSafeApp(viewModel: MainViewModel) {
                         onNavigateToCharts = { viewModel.navigateTo(ScreenDestination.CHARTS) }
                     )
                     ScreenDestination.ALERTS -> AlertsScreen(viewModel = viewModel)
+                    ScreenDestination.ALERT_CONFIG -> AlertConfigScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = { viewModel.navigateTo(ScreenDestination.ALERTS) }
+                    )
                     ScreenDestination.CHARTS -> ChartsScreen(viewModel = viewModel)
                     ScreenDestination.MAP -> MapScreen(viewModel = viewModel)
                     ScreenDestination.HISTORY -> HistoryScreen(viewModel = viewModel)

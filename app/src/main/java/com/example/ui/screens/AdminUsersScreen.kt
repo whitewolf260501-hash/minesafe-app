@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.UserProfile
 import com.example.ui.MainViewModel
 import com.example.ui.components.BorderCard
+import com.example.ui.components.EmergencySimulationCenterCard
 import com.example.ui.theme.AccentTeal
 import com.example.ui.theme.BorderAccentBlue
 import com.example.ui.theme.BorderAccentGreen
@@ -65,6 +66,8 @@ import java.util.Locale
 fun AdminUsersScreen(viewModel: MainViewModel) {
     val allUsers by viewModel.allUsersList.collectAsState()
     val currentUserProfile by viewModel.userProfile.collectAsState()
+    val isSimulationActive by viewModel.isEmergencySimulationActive.collectAsState()
+    val activeScenarioName by viewModel.simulationScenarioName.collectAsState()
 
     var userToEdit by remember { mutableStateOf<UserProfile?>(null) }
     var selectedRoleToAssign by remember { mutableStateOf("usuario") }
@@ -129,6 +132,21 @@ fun AdminUsersScreen(viewModel: MainViewModel) {
                     }
                 }
             }
+        }
+
+        // Emergency Simulation Center for Admins
+        item {
+            EmergencySimulationCenterCard(
+                currentUserProfile = currentUserProfile,
+                isSimulationActive = isSimulationActive,
+                activeScenarioName = activeScenarioName,
+                onStartSimulation = { scenario, triggerActuators, userDescription ->
+                    viewModel.startEmergencySimulation(scenario, triggerActuators, userDescription)
+                },
+                onStopSimulation = {
+                    viewModel.stopEmergencySimulation()
+                }
+            )
         }
 
         // Section Summary & Roles Rules

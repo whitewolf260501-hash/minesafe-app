@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Terrain
@@ -336,40 +337,30 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    Text(
-                        text = "CAMBIAR ROL PARA COMPROBAR SEPARACIÓN:",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = PrimaryTealDark,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Row(
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
                     ) {
-                        OutlinedButton(
-                            onClick = { viewModel.enterAsRole("usuario") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Operador", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.enterAsRole("admin") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Admin", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.enterAsRole("superAdmin") },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("SuperAdmin", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = "Seguridad RBAC",
+                                tint = PrimaryTealDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "El rol está estrictamente vinculado a tu cuenta en Firebase. La elevación de privilegios la gestiona el SuperAdmin.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -399,6 +390,92 @@ fun ProfileScreen(
                     Text("• Realtime Database: https://minefase-fc5f5-default-rtdb.firebaseio.com", style = MaterialTheme.typography.bodySmall)
                     Text("• Firestore Collection: users", style = MaterialTheme.typography.bodySmall)
                     Text("• Sincronización activa con web y sensores IoT", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
+        // Device Remembered & Security Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = PrimaryTealDark)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Dispositivo y Credenciales",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryTealDark
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val isRemembered by viewModel.rememberDevice.collectAsState()
+                    val savedEmail by viewModel.savedEmail.collectAsState()
+                    val isAutoLogin by viewModel.autoLogin.collectAsState()
+
+                    if (isRemembered && savedEmail.isNotBlank()) {
+                        Text(
+                            text = "Este teléfono recuerda tus credenciales de acceso:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = savedEmail,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryTealDark
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (isAutoLogin) "• Inicio automático: HABILITADO (Entra directo sin pedir contraseña)" else "• Inicio automático: DESACTIVADO (Credenciales precargadas en pantalla)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isAutoLogin) StatusSafeGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { viewModel.setAutoLoginPreference(!isAutoLogin) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = if (isAutoLogin) "Pausar Auto-Login" else "Activar Auto-Login",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { viewModel.forgetSavedDevice() },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = StatusDangerRed),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Olvidar Cuenta", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "ℹ️ No hay credenciales guardadas en este teléfono. Puedes activarlo marcando 'Recordar este dispositivo' en la pantalla de inicio de sesión.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
